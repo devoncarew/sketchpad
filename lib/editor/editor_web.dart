@@ -26,7 +26,7 @@ class EditorWidget extends StatefulWidget {
 }
 
 class _EditorWidgetState extends State<EditorWidget> {
-  StreamSubscription? listener;
+  StreamSubscription<void>? listener;
   CodeMirror? codeMirror;
 
   @override
