@@ -98,5 +98,6 @@ class DartservicesApi {
 
 class ApiRequestError implements Exception {
   ApiRequestError(this.message);
+
   final String message;
 }

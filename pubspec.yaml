@@ -7,6 +7,7 @@ environment:
 
 dependencies:
   codemirror: any
+  cupertino_icons: any
   flutter:
     sdk: flutter
   http: any

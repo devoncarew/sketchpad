@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sketchpad/model.dart';
 
-void initEditorWidget() {
-  // nothing to do for the stub impl
-}
-
 class EditorWidget extends StatelessWidget {
   final AppModel appModel;
 
@@ -16,7 +12,7 @@ class EditorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: appModel.codeController,
+      controller: appModel.sourceCodeController,
       maxLines: null,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.newline,

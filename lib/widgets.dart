@@ -75,7 +75,7 @@ class MiniIconButton extends StatelessWidget {
 
 class LabelWidget extends StatelessWidget {
   final String text;
-  final Color chipColor;
+  final Color? chipColor;
 
   const LabelWidget(
     this.text,
@@ -94,7 +94,7 @@ class LabelWidget extends StatelessWidget {
         child: Text(
           text,
           style: TextStyle(
-            color: isLightColor(chipColor)
+            color: chipColor == null || isLightColor(chipColor!)
                 ? Colors.grey.shade900
                 : Colors.grey.shade100,
           ),
