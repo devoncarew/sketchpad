@@ -3,41 +3,15 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:sketchpad/model.dart';
 import 'package:codemirror/codemirror.dart';
 
-// todo: how to pass the codemirror instance?
-
-// todo: show analysis issues
+import '../services/dartservices.dart';
 
 // todo: support code completion
-
-CodeMirror? codeMirror;
-late final html.DivElement div;
-
-void initEditorWidget() {
-  ui_web.platformViewRegistry.registerViewFactory('dartpad-editor',
-      (int viewId) {
-    div = html.DivElement()
-      ..style.width = '100%'
-      ..style.height = '100%';
-    codeMirror = CodeMirror.fromElement(div, options: <String, dynamic>{
-      'mode': 'dart',
-      'theme': 'monokai',
-      'lineNumbers': true,
-      'lineWrapping': true,
-    });
-    codeMirror!.doc.setValue('''
-void main() {
-  print('hello');
-}
-''');
-
-    return div;
-  });
-}
 
 class EditorWidget extends StatefulWidget {
   final AppModel appModel;
@@ -53,53 +27,98 @@ class EditorWidget extends StatefulWidget {
 
 class _EditorWidgetState extends State<EditorWidget> {
   StreamSubscription? listener;
+  CodeMirror? codeMirror;
+
+  @override
+  void initState() {
+    super.initState();
+
+    ui_web.platformViewRegistry.registerViewFactory('dartpad-editor',
+        (int viewId) {
+      final div = html.DivElement()
+        ..style.width = '100%'
+        ..style.height = '100%';
+
+      codeMirror = CodeMirror.fromElement(div, options: <String, dynamic>{
+        'mode': 'dart',
+        'theme': 'monokai',
+        'lineNumbers': true,
+        'lineWrapping': true,
+      });
+
+      return div;
+    });
+  }
+
+  void _platformViewCreated(int id) {
+    codeMirror!.refresh();
+    _updateCodemirrorFromModel();
+
+    listener?.cancel();
+    listener = codeMirror!.onChange.listen((event) {
+      _updateModelFromCodemirror(codeMirror!.doc.getValue() ?? '');
+    });
+
+    final appModel = widget.appModel;
+
+    appModel.sourceCodeController.addListener(_updateCodemirrorFromModel);
+    appModel.analysisIssues
+        .addListener(() => _updateIssues(appModel.analysisIssues.value));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    codeMirror?.setTheme(
+        colorScheme.brightness == Brightness.dark ? 'monokai' : 'default');
+
+    return HtmlElementView(
+      viewType: 'dartpad-editor',
+      onPlatformViewCreated: _platformViewCreated,
+    );
+  }
 
   @override
   void dispose() {
     super.dispose();
 
     listener?.cancel();
-    widget.appModel.codeController.removeListener(_updateCM);
+    widget.appModel.sourceCodeController
+        .removeListener(_updateCodemirrorFromModel);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        codeMirror?.refresh();
-
-        final theme = Theme.of(context);
-        final colorScheme = theme.colorScheme;
-        codeMirror?.setTheme(
-            colorScheme.brightness == Brightness.dark ? 'monokai' : 'default');
-
-        return HtmlElementView(
-          viewType: 'dartpad-editor',
-          onPlatformViewCreated: (id) {
-            codeMirror!.refresh();
-
-            listener?.cancel();
-            listener = codeMirror!.onChange.listen((event) {
-              _updateModel(codeMirror!.doc.getValue() ?? '');
-            });
-
-            widget.appModel.codeController.addListener(_updateCM);
-          },
-        );
-      },
-    );
-  }
-
-  void _updateModel(String value) {
+  void _updateModelFromCodemirror(String value) {
     final model = widget.appModel;
 
-    model.codeController.removeListener(_updateCM);
-    widget.appModel.codeController.text = value;
-    model.codeController.addListener(_updateCM);
+    model.sourceCodeController.removeListener(_updateCodemirrorFromModel);
+    widget.appModel.sourceCodeController.text = value;
+    model.sourceCodeController.addListener(_updateCodemirrorFromModel);
   }
 
-  void _updateCM() {
-    var value = widget.appModel.codeController.text;
+  void _updateCodemirrorFromModel() {
+    var value = widget.appModel.sourceCodeController.text;
     codeMirror!.doc.setValue(value);
+  }
+
+  void _updateIssues(List<AnalysisIssue> issues) {
+    final doc = codeMirror!.doc;
+
+    for (final marker in doc.getAllMarks()) {
+      marker.clear();
+    }
+
+    for (final issue in issues) {
+      final line = math.max(issue.line - 1, 0);
+      final column = math.max(issue.column - 1, 0);
+
+      doc.markText(
+        Position(line, column),
+        Position(line, column + issue.charLength),
+        className: 'squiggle-${issue.kind}',
+        title: issue.message,
+      );
+    }
   }
 }

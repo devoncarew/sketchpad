@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:provider/provider.dart';
@@ -21,22 +22,38 @@ import 'widgets.dart';
 
 // todo: improve the splitter control
 
+// todo: show formatting status in the editor
+
+// todo: show compiling and running status in the app view
+
+// todo: combine the app and console views
+
+// todo: window.flutterConfiguration
+
+// todo: progress API
+
 final ValueNotifier<bool> darkTheme = ValueNotifier(true);
 
 const defaultGripSize = denseSpacing;
 
 const appName = 'SketchPad';
 
-const initialSource = '''void main() {
+const initialSource = '''
+void main() {
+  print('hello!');
+  print('');
+
+  for (int i = 0; i < 201; i++) {
+    print(i);
+  }
+
+  print('');
   print('hello!');
 }
 ''';
 
 void main() {
   setPathUrlStrategy();
-
-  initExecutionWidget();
-  initEditorWidget();
 
   runApp(const MyApp());
 }
@@ -146,7 +163,6 @@ class _MyHomePageState extends State<MyHomePage> {
             style: buttonStyle,
           ),
           const VerticalDivider(),
-          const SizedBox(width: denseSpacing),
           ValueListenableBuilder(
             valueListenable: darkTheme,
             builder: (context, value, _) {
@@ -162,7 +178,6 @@ class _MyHomePageState extends State<MyHomePage> {
             },
           ),
           const SizedBox(width: denseSpacing),
-          // darkTheme
           IconButton(
             iconSize: defaultIconSize,
             splashRadius: defaultSplashRadius,
@@ -188,56 +203,73 @@ class _MyHomePageState extends State<MyHomePage> {
                     // todo: override the default indicator widget
                     Padding(
                       padding: const EdgeInsets.only(left: denseSpacing),
-                      child: SplitView(
-                        viewMode: SplitViewMode.Vertical,
-                        gripColor: theme.scaffoldBackgroundColor,
-                        gripColorActive: colorScheme.surface,
-                        gripSize: defaultGripSize,
-                        controller: codeAnalysisSplitter,
+                      // child: SplitView( // Column
+                      //   viewMode: SplitViewMode.Vertical,
+                      //   gripColor: theme.scaffoldBackgroundColor,
+                      //   gripColorActive: colorScheme.surface,
+                      //   gripSize: defaultGripSize,
+                      //   controller: codeAnalysisSplitter,
+                      //   children: [
+                      child: Column(
                         children: [
-                          SectionWidget(
-                            title: 'Code',
-                            actions: [
-                              ValueListenableBuilder<bool>(
-                                valueListenable: appModel.formatting,
-                                builder: (context, bool value, _) {
-                                  return MiniIconButton(
-                                    icon: Icons.format_align_left,
-                                    onPressed: value ? null : _handleFormatting,
-                                  );
-                                },
-                              ),
-                              const SizedBox(width: denseSpacing),
-                              // todo: divider color
-                              const SizedBox(
-                                height: smallIconSize + 8,
-                                child: VerticalDivider(),
-                              ),
-                              const SizedBox(width: denseSpacing),
-                              ValueListenableBuilder<bool>(
-                                valueListenable: appModel.compiling,
-                                builder: (context, bool value, _) {
-                                  return MiniIconButton(
-                                    icon: Icons.play_arrow,
-                                    onPressed: value ? null : _handleCompiling,
-                                  );
-                                },
-                              ),
-                            ],
-                            child: EditorWidget(appModel: appModel),
+                          Expanded(
+                            child: SectionWidget(
+                              title: 'Code',
+                              actions: [
+                                ValueListenableBuilder<List<AnalysisIssue>>(
+                                  valueListenable: appModel.analysisIssues,
+                                  builder: (context, issues, _) {
+                                    return ProblemsCountWidget(issues: issues);
+                                  },
+                                ),
+                                const SizedBox(width: denseSpacing),
+                                // todo: divider color
+                                const SizedBox(
+                                  height: smallIconSize + 8,
+                                  child: VerticalDivider(),
+                                ),
+                                const SizedBox(width: denseSpacing),
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: appModel.formattingBusy,
+                                  builder: (context, bool value, _) {
+                                    return MiniIconButton(
+                                      icon: Icons.format_align_left,
+                                      onPressed:
+                                          value ? null : _handleFormatting,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: denseSpacing),
+                                // todo: divider color
+                                const SizedBox(
+                                  height: smallIconSize + 8,
+                                  child: VerticalDivider(),
+                                ),
+                                const SizedBox(width: denseSpacing),
+                                ValueListenableBuilder<bool>(
+                                  valueListenable: appModel.compilingBusy,
+                                  builder: (context, bool value, _) {
+                                    return MiniIconButton(
+                                      icon: Icons.play_arrow,
+                                      onPressed:
+                                          value ? null : _handleCompiling,
+                                    );
+                                  },
+                                ),
+                              ],
+                              child: EditorWidget(appModel: appModel),
+                            ),
                           ),
                           ValueListenableBuilder<List<AnalysisIssue>>(
-                            valueListenable: appModel.issues,
+                            valueListenable: appModel.analysisIssues,
                             builder: (context, issues, _) {
-                              return SectionWidget(
-                                title: 'Analysis Results',
-                                child: ProblemsView(problems: issues),
-                              );
+                              return ProblemsWidget(problems: issues);
                             },
                           ),
                         ],
                       ),
                     ),
+                    // ),
                     Padding(
                       padding: const EdgeInsets.only(right: denseSpacing),
                       child: SplitView(
@@ -250,25 +282,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           SectionWidget(
                             title: 'App',
                             actions: [
-                              ValueListenableBuilder<bool>(
-                                valueListenable: appModel.compiling,
-                                builder: (context, bool value, _) {
-                                  return SizedBox.square(
-                                    dimension: smallIconSize,
-                                    child: value
-                                        ? const CircularProgressIndicator()
-                                        : const SizedBox.square(),
-                                  );
-                                },
-                              ),
-                            ],
-                            child: const ExecutionWidget(),
-                          ),
-                          SectionWidget(
-                            title: 'Output',
-                            actions: [
                               ValueListenableBuilder<TextEditingValue>(
-                                valueListenable: appModel.consoleController,
+                                valueListenable:
+                                    appModel.consoleOutputController,
                                 builder: (context, value, _) {
                                   return MiniIconButton(
                                     icon: Icons.playlist_remove,
@@ -278,7 +294,42 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 },
                               ),
+                              const SizedBox(
+                                height: smallIconSize + 8,
+                                child: VerticalDivider(),
+                              ),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: appModel.compilingBusy,
+                                builder: (context, bool value, _) {
+                                  return SizedBox.square(
+                                    dimension: smallIconSize,
+                                    child: value
+                                        ? const CircularProgressIndicator()
+                                        : const SizedBox.square(),
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: denseSpacing),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: appModel.compilingBusy,
+                                builder: (context, bool value, _) {
+                                  return AnimatedRotation(
+                                    turns: value ? 8 : 0,
+                                    duration: const Duration(seconds: 3),
+                                    child: const Icon(
+                                      CupertinoIcons.gear,
+                                      size: smallIconSize,
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
+                            child: ExecutionWidget(
+                              appServices: appServices,
+                            ),
+                          ),
+                          SectionWidget(
+                            title: 'Console',
                             child: ConsoleWidget(appModel: appModel),
                           ),
                         ],
@@ -304,28 +355,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _handleFormatting() async {
-    final value = appModel.codeController.text;
+    final value = appModel.sourceCodeController.text;
     var result = await appServices.format(SourceRequest(source: value));
     if (result.hasNewString()) {
-      appModel.codeController.text = result.newString;
+      appModel.sourceCodeController.text = result.newString;
     }
   }
 
   Future<void> _handleCompiling() async {
-    final value = appModel.codeController.text;
+    final value = appModel.sourceCodeController.text;
 
     try {
       final response = await appServices.compile(CompileRequest(source: value));
-
-      // todo: handle compilation result
       _clearConsole();
-      appModel.appendToConsole('compiled ${response.result.length} bytes\n');
+      appServices.executeJavaScript(response.result);
     } catch (error) {
       var message = error is ApiRequestError ? error.message : '$error';
       // var snackBar = SnackBar(content: Text('Compilation error: $e'));
       // ScaffoldMessenger.of(context).showSnackBar(snackBar);
       _clearConsole();
-      appModel.appendToConsole(message);
+      appModel.appendLineToConsole(message);
     }
   }
 
@@ -368,7 +417,7 @@ class StatusLineWidget extends StatelessWidget {
               ),
               const Expanded(child: SizedBox(width: defaultSpacing)),
               ValueListenableBuilder(
-                valueListenable: appModel.version,
+                valueListenable: appModel.runtimeVersions,
                 builder: (content, version, _) {
                   return Text(
                     version.sdkVersion.isEmpty
@@ -384,7 +433,7 @@ class StatusLineWidget extends StatelessWidget {
           Expanded(
             child: Row(children: [
               ValueListenableBuilder(
-                valueListenable: appModel.version,
+                valueListenable: appModel.runtimeVersions,
                 builder: (content, version, _) {
                   return Text(
                     version.flutterVersion.isEmpty
