@@ -1,6 +1,6 @@
 name: sketchpad
-description: A new Flutter project.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+description: A experimental redux of the DartPad UI.
+publish_to: 'none'
 
 environment:
   sdk: ^3.0.0
