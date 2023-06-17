@@ -3,10 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sketchpad/services/dartservices.dart';
 
-// todo: backend services
-
-// todo: execution service
-
 class AppModel {
   final String initialText;
 
@@ -43,20 +39,21 @@ class AppModel {
 class AppServices {
   final AppModel appModel;
   final DartservicesApi services;
-  ExecutionService? _executionService;
 
-  Timer? _debouncedNotifier;
+  ExecutionService? _executionService;
   StreamSubscription<String>? stdoutSub;
+
+  Timer? reanalysisDebouncer;
 
   AppServices(this.appModel, this.services) {
     appModel.sourceCodeController.addListener(_handleCodeChanged);
   }
 
   void _handleCodeChanged() {
-    _debouncedNotifier?.cancel();
-    _debouncedNotifier = Timer(const Duration(milliseconds: 1000), () {
+    reanalysisDebouncer?.cancel();
+    reanalysisDebouncer = Timer(const Duration(milliseconds: 1000), () {
       _reAnalyze();
-      _debouncedNotifier = null;
+      reanalysisDebouncer = null;
     });
   }
 

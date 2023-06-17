@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 import '../model.dart';
 import 'frame.dart';
 
-// todo: register an execution service
-
 class ExecutionWidget extends StatefulWidget {
   final AppServices appServices;
 
