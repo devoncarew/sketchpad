@@ -51,7 +51,10 @@ class _EditorWidgetState extends State<EditorWidget> {
   }
 
   void _platformViewCreated(int id) {
-    codeMirror!.refresh();
+    Timer.run(() {
+      codeMirror?.refresh();
+    });
+
     _updateCodemirrorFromModel();
 
     listener?.cancel();
