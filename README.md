@@ -1,6 +1,6 @@
 ## DartSketch
 
-A experimental redux of the DartPad UI.
+An experimental redux of the DartPad UI.
 
 ## Status?
 
@@ -8,7 +8,7 @@ This is an unofficial re-imagining of the DartPad UI. Some goals:
 
 - re-write in Flutter Web
 - keep the UI simple; make sure it's visually interesting
-- keep the the number of use cases small; only Dart snippets and Flutter apps
+- keep the number of use cases small; only Dart snippets and Flutter apps
   are supported
 
 ## How to run
