@@ -10,11 +10,13 @@ const double defaultSplashRadius = defaultIconSize;
 
 const double smallIconSize = 20.0;
 
-const defaultSpacing = 16.0;
-const denseSpacing = 8.0;
+const double defaultSpacing = 16.0;
+const double denseSpacing = 8.0;
 
-const toolbarHeight = 32.0;
+const double toolbarHeight = 32.0;
 
 const Color subtleColor = Colors.grey;
 
 const TextStyle subtleText = TextStyle(color: subtleColor);
+
+const defaultGripSize = denseSpacing;
