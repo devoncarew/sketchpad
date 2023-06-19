@@ -10,6 +10,8 @@ dependencies:
   collection: any
   flutter:
     sdk: flutter
+  fluttering_phrases: any
+  go_router: any
   http: any
   protobuf: any
   provider: ^6.0.0

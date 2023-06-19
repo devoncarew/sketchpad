@@ -45,9 +45,12 @@ class _EditorWidgetState extends State<EditorWidget> {
         'lineNumbers': true,
         'lineWrapping': true,
       });
+      _updateEditableStatus();
 
       return div;
     });
+
+    widget.appModel.appReady.addListener(_updateEditableStatus);
   }
 
   void _platformViewCreated(int id) {
@@ -85,11 +88,12 @@ class _EditorWidgetState extends State<EditorWidget> {
 
   @override
   void dispose() {
-    super.dispose();
-
     listener?.cancel();
     widget.appModel.sourceCodeController
         .removeListener(_updateCodemirrorFromModel);
+    widget.appModel.appReady.removeListener(_updateEditableStatus);
+
+    super.dispose();
   }
 
   void _updateModelFromCodemirror(String value) {
@@ -123,5 +127,9 @@ class _EditorWidgetState extends State<EditorWidget> {
         title: issue.message,
       );
     }
+  }
+
+  void _updateEditableStatus() {
+    codeMirror?.setReadOnly(!widget.appModel.appReady.value);
   }
 }

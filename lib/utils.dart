@@ -3,7 +3,17 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttering_phrases/fluttering_phrases.dart'
+    as fluttering_phrases;
 import 'package:sketchpad/theme.dart';
+
+const defaultSnippetSource = r'''
+void main() {
+  for (int i = 0; i < 5; i++) {
+    print('hello ${i + 1}');
+  }
+}
+''';
 
 String pluralize(String word, int count) {
   return count == 1 ? word : '${word}s';
@@ -14,6 +24,8 @@ void unimplemented(BuildContext context, String message) {
     SnackBar(content: Text('Unimplemented: $message')),
   );
 }
+
+String generateSnippetName() => fluttering_phrases.generate();
 
 /// Support a stack of progress and status messages.
 ///

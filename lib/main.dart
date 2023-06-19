@@ -1,7 +1,8 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:sketchpad/services/dartservices.dart';
 import 'package:split_view/split_view.dart';
@@ -22,8 +23,6 @@ import 'widgets.dart';
 
 // todo: window.flutterConfiguration
 
-// todo: read from github gists
-
 // todo: support flutter snippets
 
 // todo: handle large console content
@@ -34,49 +33,44 @@ final ValueNotifier<bool> darkTheme = ValueNotifier(true);
 
 const appName = 'SketchPad';
 
-const initialSource = '''
-void main() {
-  print('hello!');
-  print('');
-
-  for (int i = 0; i < 201; i++) {
-    print(i);
-  }
-
-  print('');
-  print('hello!');
-}
-''';
-
 void main() {
   setPathUrlStrategy();
 
-  runApp(const MyApp());
+  runApp(const DartPadApp());
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+class DartPadApp extends StatefulWidget {
+  const DartPadApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<DartPadApp> createState() => _DartPadAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-  _MyAppState();
-
+class _DartPadAppState extends State<DartPadApp> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
       valueListenable: darkTheme,
       builder: (BuildContext context, bool value, _) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: appName,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSwatch(
               brightness: value ? Brightness.dark : Brightness.light,
             ),
           ),
-          home: const MyHomePage(title: appName),
+          routerConfig: GoRouter(
+            initialLocation: '/',
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (BuildContext context, GoRouterState state) {
+                  final id = state.queryParameters['id'];
+                  return DartPadMainPage(title: appName, gistId: id);
+                },
+              ),
+            ],
+          ),
           debugShowCheckedModeBanner: false,
         );
       },
@@ -84,16 +78,21 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
+class DartPadMainPage extends StatefulWidget {
   final String title;
+  final String? gistId;
+
+  const DartPadMainPage({
+    required this.title,
+    this.gistId,
+    super.key,
+  });
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<DartPadMainPage> createState() => _DartPadMainPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _DartPadMainPageState extends State<DartPadMainPage> {
   final SplitViewController mainSplitter =
       SplitViewController(weights: [0.52, 0.48]);
   final SplitViewController uiConsoleSplitter =
@@ -106,13 +105,18 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    final services =
-        DartservicesApi(Client(), rootUrl: 'https://stable.api.dartpad.dev/');
+    final services = DartservicesApi(http.Client(),
+        rootUrl: 'https://stable.api.dartpad.dev/');
 
-    appModel = AppModel(initialSource);
+    appModel = AppModel();
     appServices = AppServices(appModel, services);
 
     appServices.populateVersions();
+
+    appServices.performInitialLoad(
+      gistId: widget.gistId,
+      fallbackSnippet: defaultSnippetSource,
+    );
   }
 
   @override
@@ -134,9 +138,14 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(width: denseSpacing),
             const Text(appName),
             const SizedBox(width: defaultSpacing),
-            const Expanded(
+            Expanded(
               child: Center(
-                child: Text('snowy-flash-5437'),
+                child: ValueListenableBuilder<String>(
+                  valueListenable: appModel.title,
+                  builder: (BuildContext context, String value, _) {
+                    return Text(value);
+                  },
+                ),
               ),
             ),
             const SizedBox(width: defaultSpacing),

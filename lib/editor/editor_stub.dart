@@ -11,14 +11,20 @@ class EditorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: appModel.sourceCodeController,
-      maxLines: null,
-      keyboardType: TextInputType.multiline,
-      textInputAction: TextInputAction.newline,
-      expands: true,
-      decoration: null,
-      style: const TextStyle(fontFamily: 'Courier'),
+    return ValueListenableBuilder<bool>(
+      valueListenable: appModel.appReady,
+      builder: (context, value, _) {
+        return TextField(
+          readOnly: !value,
+          controller: appModel.sourceCodeController,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          expands: true,
+          decoration: null,
+          style: const TextStyle(fontFamily: 'Courier'),
+        );
+      },
     );
   }
 }

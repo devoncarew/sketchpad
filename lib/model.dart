@@ -1,29 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:sketchpad/services/dartservices.dart';
+import 'package:sketchpad/gists.dart';
 
+import 'services/dartservices.dart';
 import 'utils.dart';
 
 class AppModel {
-  final String initialText;
-
-  AppModel(this.initialText);
-
-  TextEditingController get sourceCodeController =>
-      _codeController ?? _initCodeController();
-
-  TextEditingController? _codeController;
-
-  TextEditingController _initCodeController() {
-    _codeController = TextEditingController(text: initialText);
-    return _codeController!;
-  }
-
-  late final TextEditingController consoleOutputController =
-      TextEditingController();
+  final ValueNotifier<bool> appReady = ValueNotifier(false);
 
   final ValueNotifier<List<AnalysisIssue>> analysisIssues = ValueNotifier([]);
+
+  final ValueNotifier<String> title = ValueNotifier('');
+
+  final TextEditingController sourceCodeController = TextEditingController();
+  final TextEditingController consoleOutputController = TextEditingController();
 
   final ValueNotifier<bool> formattingBusy = ValueNotifier(false);
   final ValueNotifier<bool> compilingBusy = ValueNotifier(false);
@@ -71,6 +62,49 @@ class AppServices {
   Future<void> populateVersions() async {
     final version = await services.version();
     appModel.runtimeVersions.value = version;
+  }
+
+  Future<void> performInitialLoad({
+    String? gistId,
+    required String fallbackSnippet,
+  }) async {
+    if (gistId == null) {
+      appModel.sourceCodeController.text = fallbackSnippet;
+      appModel.appReady.value = true;
+      return;
+    }
+
+    final gistLoader = GistLoader();
+    final progress =
+        appModel.editingStatus.showMessage(initialText: 'Loading…');
+    try {
+      final gist = await gistLoader.load(gistId);
+      progress.close();
+
+      var title = gist.description ?? '';
+      appModel.title.value =
+          title.length > 40 ? '${title.substring(0, 40)}…' : title;
+
+      final source = gist.mainDartSource;
+      if (source == null) {
+        appModel.editingStatus.showToast('main.dart not found');
+        appModel.sourceCodeController.text = fallbackSnippet;
+      } else {
+        appModel.sourceCodeController.text = source;
+      }
+
+      appModel.appReady.value = true;
+    } catch (e) {
+      appModel.editingStatus.showToast('Error loading gist');
+      progress.close();
+
+      appModel.appendLineToConsole('Error loading gist: $e');
+
+      appModel.sourceCodeController.text = fallbackSnippet;
+      appModel.appReady.value = true;
+    } finally {
+      gistLoader.dispose();
+    }
   }
 
   Future<FormatResponse> format(SourceRequest request) async {
