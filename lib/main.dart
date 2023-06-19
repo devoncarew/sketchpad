@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:provider/provider.dart';
@@ -16,21 +15,13 @@ import 'problems.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-// todo: deploy to firebase
-
 // todo: have cmd-s re-run
 
 // todo: improve the splitter control
 
-// todo: show formatting status in the editor
-
-// todo: show compiling and running status in the app view
-
 // todo: combine the app and console views
 
 // todo: window.flutterConfiguration
-
-// todo: progress API
 
 final ValueNotifier<bool> darkTheme = ValueNotifier(true);
 
@@ -203,32 +194,15 @@ class _MyHomePageState extends State<MyHomePage> {
                     // todo: override the default indicator widget
                     Padding(
                       padding: const EdgeInsets.only(left: denseSpacing),
-                      // child: SplitView( // Column
-                      //   viewMode: SplitViewMode.Vertical,
-                      //   gripColor: theme.scaffoldBackgroundColor,
-                      //   gripColorActive: colorScheme.surface,
-                      //   gripSize: defaultGripSize,
-                      //   controller: codeAnalysisSplitter,
-                      //   children: [
                       child: Column(
                         children: [
                           Expanded(
                             child: SectionWidget(
                               title: 'Code',
+                              status: ProgressWidget(
+                                status: appModel.editingStatus,
+                              ),
                               actions: [
-                                ValueListenableBuilder<List<AnalysisIssue>>(
-                                  valueListenable: appModel.analysisIssues,
-                                  builder: (context, issues, _) {
-                                    return ProblemsCountWidget(issues: issues);
-                                  },
-                                ),
-                                const SizedBox(width: denseSpacing),
-                                // todo: divider color
-                                const SizedBox(
-                                  height: smallIconSize + 8,
-                                  child: VerticalDivider(),
-                                ),
-                                const SizedBox(width: denseSpacing),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: appModel.formattingBusy,
                                   builder: (context, bool value, _) {
@@ -240,11 +214,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                   },
                                 ),
                                 const SizedBox(width: denseSpacing),
-                                // todo: divider color
                                 const SizedBox(
-                                  height: smallIconSize + 8,
-                                  child: VerticalDivider(),
-                                ),
+                                    height: smallIconSize + 8,
+                                    child: VerticalDivider()),
                                 const SizedBox(width: denseSpacing),
                                 ValueListenableBuilder<bool>(
                                   valueListenable: appModel.compilingBusy,
@@ -281,6 +253,9 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           SectionWidget(
                             title: 'App',
+                            status: ProgressWidget(
+                              status: appModel.executionStatus,
+                            ),
                             actions: [
                               ValueListenableBuilder<TextEditingValue>(
                                 valueListenable:
@@ -294,35 +269,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                   );
                                 },
                               ),
-                              const SizedBox(
-                                height: smallIconSize + 8,
-                                child: VerticalDivider(),
-                              ),
-                              ValueListenableBuilder<bool>(
-                                valueListenable: appModel.compilingBusy,
-                                builder: (context, bool value, _) {
-                                  return SizedBox.square(
-                                    dimension: smallIconSize,
-                                    child: value
-                                        ? const CircularProgressIndicator()
-                                        : const SizedBox.square(),
-                                  );
-                                },
-                              ),
                               const SizedBox(width: denseSpacing),
-                              ValueListenableBuilder<bool>(
-                                valueListenable: appModel.compilingBusy,
-                                builder: (context, bool value, _) {
-                                  return AnimatedRotation(
-                                    turns: value ? 8 : 0,
-                                    duration: const Duration(seconds: 3),
-                                    child: const Icon(
-                                      CupertinoIcons.gear,
-                                      size: smallIconSize,
-                                    ),
-                                  );
-                                },
-                              ),
+                              const SizedBox(
+                                  height: smallIconSize + 8,
+                                  child: VerticalDivider()),
+                              const SizedBox(width: denseSpacing),
+                              CompilingStatusWidget(
+                                  status: appModel.compilingBusy),
                             ],
                             child: ExecutionWidget(
                               appServices: appServices,
@@ -356,25 +309,39 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _handleFormatting() async {
     final value = appModel.sourceCodeController.text;
+
     var result = await appServices.format(SourceRequest(source: value));
-    if (result.hasNewString()) {
+
+    if (result.hasError()) {
+      // TODO: in practice we don't get errors back, just no formatting changes
+      appModel.editingStatus.showToast('Error formatting code');
+      appModel.appendLineToConsole('Formatting issue: ${result.error.message}');
+    } else if (result.newString == value) {
+      appModel.editingStatus.showToast('No changes');
+    } else {
+      appModel.editingStatus.showToast('Formatted');
       appModel.sourceCodeController.text = result.newString;
     }
   }
 
   Future<void> _handleCompiling() async {
     final value = appModel.sourceCodeController.text;
+    final progress =
+        appModel.executionStatus.showMessage(initialText: 'Compiling…');
+    _clearConsole();
 
     try {
       final response = await appServices.compile(CompileRequest(source: value));
-      _clearConsole();
+
+      appModel.executionStatus.showToast('Running…');
       appServices.executeJavaScript(response.result);
     } catch (error) {
+      appModel.executionStatus.showToast('Compilation failed');
+
       var message = error is ApiRequestError ? error.message : '$error';
-      // var snackBar = SnackBar(content: Text('Compilation error: $e'));
-      // ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      _clearConsole();
       appModel.appendLineToConsole(message);
+    } finally {
+      progress.close();
     }
   }
 
@@ -467,13 +434,15 @@ class SectionWidget extends StatelessWidget {
   static const insets = 6.0;
 
   final String title;
+  final Widget? status;
   final List<Widget> actions;
   final Widget child;
 
   const SectionWidget({
     required this.title,
-    required this.child,
+    this.status,
     this.actions = const [],
+    required this.child,
     super.key,
   });
 
@@ -497,13 +466,13 @@ class SectionWidget extends StatelessWidget {
               height: defaultIconSize,
               child: Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleSmall,
-                    ),
+                  Text(
+                    title,
+                    style: theme.textTheme.titleSmall,
                   ),
                   const SizedBox(width: defaultSpacing),
+                  if (status != null) status!,
+                  const Expanded(child: SizedBox(width: defaultSpacing)),
                   ...actions
                 ],
               ),
