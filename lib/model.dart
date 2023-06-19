@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:sketchpad/services/dartservices.dart';
 
+import 'utils.dart';
+
 class AppModel {
   final String initialText;
 
@@ -25,6 +27,9 @@ class AppModel {
 
   final ValueNotifier<bool> formattingBusy = ValueNotifier(false);
   final ValueNotifier<bool> compilingBusy = ValueNotifier(false);
+
+  final Progress editingStatus = Progress();
+  final Progress executionStatus = Progress();
 
   final ValueNotifier<VersionResponse> runtimeVersions =
       ValueNotifier(VersionResponse());
@@ -111,14 +116,35 @@ class AppServices {
     future.then((AnalysisResults results) {
       appModel.analysisIssues.value = results.issues.toList()
         ..sort(_compareIssues);
+      _updateEditorProblemsStatus();
       return null;
     }).onError((error, stackTrace) {
       var message = error is ApiRequestError ? error.message : '$error';
       appModel.analysisIssues.value = [
         AnalysisIssue(kind: 'error', message: message),
       ];
+      _updateEditorProblemsStatus();
       return null;
     });
+  }
+
+  void _updateEditorProblemsStatus() {
+    final issues = appModel.analysisIssues.value;
+    final progress = appModel.editingStatus.getNamedMessage('problems');
+
+    if (issues.isEmpty) {
+      if (progress != null) {
+        progress.close();
+      }
+    } else {
+      final message = '${issues.length} ${pluralize('issue', issues.length)}';
+      if (progress == null) {
+        appModel.editingStatus
+            .showMessage(initialText: message, name: 'problems');
+      } else {
+        progress.updateText(message);
+      }
+    }
   }
 }
 

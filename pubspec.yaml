@@ -7,7 +7,7 @@ environment:
 
 dependencies:
   codemirror: any
-  cupertino_icons: any
+  collection: any
   flutter:
     sdk: flutter
   http: any
@@ -26,3 +26,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/dart_logo_128.png
+    - assets/gear-96-dark.png
+    - assets/gear-96-light.png
