@@ -5,11 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:sketchpad/theme.dart';
 
-bool isLightColor(Color color) =>
-    ThemeData.estimateBrightnessForColor(color) == Brightness.light;
-
 String pluralize(String word, int count) {
   return count == 1 ? word : '${word}s';
+}
+
+void unimplemented(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Unimplemented: $message')),
+  );
 }
 
 /// Support a stack of progress and status messages.

@@ -13,19 +13,24 @@ import 'execution/execution.dart';
 import 'model.dart';
 import 'problems.dart';
 import 'theme.dart';
+import 'utils.dart';
 import 'widgets.dart';
 
 // todo: have cmd-s re-run
-
-// todo: improve the splitter control
 
 // todo: combine the app and console views
 
 // todo: window.flutterConfiguration
 
-final ValueNotifier<bool> darkTheme = ValueNotifier(true);
+// todo: read from github gists
 
-const defaultGripSize = denseSpacing;
+// todo: support flutter snippets
+
+// todo: handle large console content
+
+// todo: explore using the monaco editor
+
+final ValueNotifier<bool> darkTheme = ValueNotifier(true);
 
 const appName = 'SketchPad';
 
@@ -91,8 +96,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final SplitViewController mainSplitter =
       SplitViewController(weights: [0.52, 0.48]);
-  final SplitViewController codeAnalysisSplitter =
-      SplitViewController(weights: [0.77, 0.23]);
   final SplitViewController uiConsoleSplitter =
       SplitViewController(weights: [0.64, 0.36]);
 
@@ -122,33 +125,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final scaffold = Scaffold(
       appBar: AppBar(
-        // leading: ,
-        title: Row(children: [
-          Image.asset(
-            'assets/dart_logo_128.png',
-            width: 32,
-          ),
-          const SizedBox(width: denseSpacing),
-          const Text(appName),
-          const SizedBox(width: defaultSpacing),
-          const Expanded(
-            child: Center(
-              child: Text('snowy-flash-5437'),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/dart_logo_128.png',
+              width: 32,
             ),
-          ),
-          const SizedBox(width: defaultSpacing),
-        ]),
-        centerTitle: true,
+            const SizedBox(width: denseSpacing),
+            const Text(appName),
+            const SizedBox(width: defaultSpacing),
+            const Expanded(
+              child: Center(
+                child: Text('snowy-flash-5437'),
+              ),
+            ),
+            const SizedBox(width: defaultSpacing),
+          ],
+        ),
         actions: [
           TextButton.icon(
-            onPressed: () => print('hello'),
+            onPressed: () => unimplemented(context, 'new snippet'),
             icon: const Icon(Icons.add_circle),
             label: const Text('New'),
             style: buttonStyle,
           ),
           const VerticalDivider(),
           TextButton.icon(
-            onPressed: () => print('hello'),
+            onPressed: () => unimplemented(context, 'install sdk'),
             icon: const Icon(Icons.download),
             label: const Text('Install SDK'),
             style: buttonStyle,
@@ -172,7 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             iconSize: defaultIconSize,
             splashRadius: defaultSplashRadius,
-            onPressed: () => print('hello'),
+            onPressed: () => unimplemented(context, 'overflow menu'),
             icon: const Icon(Icons.more_vert),
           ),
           const SizedBox(width: denseSpacing),
@@ -187,11 +190,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SplitView(
                   viewMode: SplitViewMode.Horizontal,
                   gripColor: theme.scaffoldBackgroundColor,
-                  gripColorActive: colorScheme.surface,
+                  gripColorActive: theme.scaffoldBackgroundColor,
                   gripSize: defaultGripSize,
                   controller: mainSplitter,
+                  activeIndicator: SplitViewDragWidget.vertical(),
                   children: [
-                    // todo: override the default indicator widget
                     Padding(
                       padding: const EdgeInsets.only(left: denseSpacing),
                       child: Column(
@@ -208,6 +211,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   builder: (context, bool value, _) {
                                     return MiniIconButton(
                                       icon: Icons.format_align_left,
+                                      tooltip: 'Format',
                                       onPressed:
                                           value ? null : _handleFormatting,
                                     );
@@ -223,6 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   builder: (context, bool value, _) {
                                     return MiniIconButton(
                                       icon: Icons.play_arrow,
+                                      tooltip: 'Run',
                                       onPressed:
                                           value ? null : _handleCompiling,
                                     );
@@ -247,9 +252,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: SplitView(
                         viewMode: SplitViewMode.Vertical,
                         gripColor: theme.scaffoldBackgroundColor,
-                        gripColorActive: colorScheme.surface,
+                        gripColorActive: theme.scaffoldBackgroundColor,
                         gripSize: defaultGripSize,
                         controller: uiConsoleSplitter,
+                        activeIndicator: SplitViewDragWidget.horizontal(),
                         children: [
                           SectionWidget(
                             title: 'App',
@@ -263,6 +269,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 builder: (context, value, _) {
                                   return MiniIconButton(
                                     icon: Icons.playlist_remove,
+                                    tooltip: 'Clear console',
                                     onPressed: value.text.isEmpty
                                         ? null
                                         : _clearConsole,
@@ -317,9 +324,9 @@ class _MyHomePageState extends State<MyHomePage> {
       appModel.editingStatus.showToast('Error formatting code');
       appModel.appendLineToConsole('Formatting issue: ${result.error.message}');
     } else if (result.newString == value) {
-      appModel.editingStatus.showToast('No changes');
+      appModel.editingStatus.showToast('No formatting changes');
     } else {
-      appModel.editingStatus.showToast('Formatted');
+      appModel.editingStatus.showToast('Format successful');
       appModel.sourceCodeController.text = result.newString;
     }
   }
@@ -376,53 +383,58 @@ class StatusLineWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Row(children: [
-              MiniIconButton(
-                icon: Icons.keyboard,
-                onPressed: () => print('hello'),
-                color: textColor,
-              ),
-              const Expanded(child: SizedBox(width: defaultSpacing)),
-              ValueListenableBuilder(
-                valueListenable: appModel.runtimeVersions,
-                builder: (content, version, _) {
-                  return Text(
-                    version.sdkVersion.isEmpty
-                        ? ''
-                        : 'Dart ${version.sdkVersion}',
-                    style: textStyle,
-                  );
-                },
-              ),
-            ]),
+            child: Row(
+              children: [
+                MiniIconButton(
+                  icon: Icons.keyboard,
+                  tooltip: 'Keybindings',
+                  onPressed: () => unimplemented(context, 'keybindings legend'),
+                  color: textColor,
+                ),
+                const Expanded(child: SizedBox(width: defaultSpacing)),
+                ValueListenableBuilder(
+                  valueListenable: appModel.runtimeVersions,
+                  builder: (content, version, _) {
+                    return Text(
+                      version.sdkVersion.isEmpty
+                          ? ''
+                          : 'Dart ${version.sdkVersion}',
+                      style: textStyle,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
           Text(' • ', style: textStyle),
           Expanded(
-            child: Row(children: [
-              ValueListenableBuilder(
-                valueListenable: appModel.runtimeVersions,
-                builder: (content, version, _) {
-                  return Text(
-                    version.flutterVersion.isEmpty
-                        ? ''
-                        : 'Flutter ${version.flutterVersion}',
-                    style: textStyle,
-                  );
-                },
-              ),
-              const Expanded(child: SizedBox(width: defaultSpacing)),
-              Hyperlink(
-                url: 'https://dart.dev/tools/dartpad/privacy',
-                displayText: 'Privacy notice',
-                style: textStyle,
-              ),
-              const SizedBox(width: defaultSpacing),
-              Hyperlink(
-                url: 'https://github.com/dart-lang/dart-pad/issues',
-                displayText: 'Feedback',
-                style: textStyle,
-              ),
-            ]),
+            child: Row(
+              children: [
+                ValueListenableBuilder(
+                  valueListenable: appModel.runtimeVersions,
+                  builder: (content, version, _) {
+                    return Text(
+                      version.flutterVersion.isEmpty
+                          ? ''
+                          : 'Flutter ${version.flutterVersion}',
+                      style: textStyle,
+                    );
+                  },
+                ),
+                const Expanded(child: SizedBox(width: defaultSpacing)),
+                Hyperlink(
+                  url: 'https://dart.dev/tools/dartpad/privacy',
+                  displayText: 'Privacy notice',
+                  style: textStyle,
+                ),
+                const SizedBox(width: defaultSpacing),
+                Hyperlink(
+                  url: 'https://github.com/dart-lang/dart-pad/issues',
+                  displayText: 'Feedback',
+                  style: textStyle,
+                ),
+              ],
+            ),
           ),
         ],
       ),
