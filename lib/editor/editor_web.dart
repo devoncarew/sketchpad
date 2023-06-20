@@ -13,13 +13,49 @@ import '../services/dartservices.dart';
 
 // todo: support code completion
 
+final Key _elementViewKey = UniqueKey();
+
+final Expando _expando = Expando('codemirror');
+
+html.Element _codeMirrorFactory(int viewId) {
+  final div = html.DivElement()
+    ..style.width = '100%'
+    ..style.height = '100%';
+
+  // todo: comments config, tab behavior, ...
+  final codeMirror = CodeMirror.fromElement(div, options: <String, dynamic>{
+    'mode': 'dart',
+    'theme': 'monokai',
+    'lineNumbers': true,
+    'lineWrapping': true,
+  });
+
+  _expando[div] = codeMirror;
+
+  return div;
+}
+
+const String _viewType = 'dartpad-editor';
+bool _viewFactoryInited = false;
+
+void _initViewFactory() {
+  if (_viewFactoryInited) return;
+
+  _viewFactoryInited = true;
+
+  ui_web.platformViewRegistry
+      .registerViewFactory(_viewType, _codeMirrorFactory);
+}
+
 class EditorWidget extends StatefulWidget {
   final AppModel appModel;
 
-  const EditorWidget({
+  EditorWidget({
     required this.appModel,
     super.key,
-  });
+  }) {
+    _initViewFactory();
+  }
 
   @override
   State<EditorWidget> createState() => _EditorWidgetState();
@@ -33,32 +69,27 @@ class _EditorWidgetState extends State<EditorWidget> {
   void initState() {
     super.initState();
 
-    ui_web.platformViewRegistry.registerViewFactory('dartpad-editor',
-        (int viewId) {
-      final div = html.DivElement()
-        ..style.width = '100%'
-        ..style.height = '100%';
-
-      codeMirror = CodeMirror.fromElement(div, options: <String, dynamic>{
-        'mode': 'dart',
-        'theme': 'monokai',
-        'lineNumbers': true,
-        'lineWrapping': true,
-      });
-      _updateEditableStatus();
-
-      return div;
-    });
-
     widget.appModel.appReady.addListener(_updateEditableStatus);
   }
 
-  void _platformViewCreated(int id) {
-    Timer.run(() {
-      codeMirror?.refresh();
-    });
+  void _platformViewCreated(int id, {required bool darkMode}) {
+    final div = ui_web.platformViewRegistry.getViewById(id) as html.Element;
+    codeMirror = _expando[div] as CodeMirror;
 
-    _updateCodemirrorFromModel();
+    // read only
+    final readOnly = !widget.appModel.appReady.value;
+    if (readOnly) {
+      codeMirror!.setReadOnly(true);
+    }
+
+    // contents
+    final contents = widget.appModel.sourceCodeController.text;
+    codeMirror!.doc.setValue(contents);
+
+    // darkmode
+    _updateCodemirrorMode(darkMode);
+
+    Timer.run(() => codeMirror!.refresh());
 
     listener?.cancel();
     listener = codeMirror!.onChange.listen((event) {
@@ -76,13 +107,15 @@ class _EditorWidgetState extends State<EditorWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final darkMode = colorScheme.brightness == Brightness.dark;
 
-    codeMirror?.setTheme(
-        colorScheme.brightness == Brightness.dark ? 'monokai' : 'default');
+    _updateCodemirrorMode(darkMode);
 
     return HtmlElementView(
-      viewType: 'dartpad-editor',
-      onPlatformViewCreated: _platformViewCreated,
+      key: _elementViewKey,
+      viewType: _viewType,
+      onPlatformViewCreated: (id) =>
+          _platformViewCreated(id, darkMode: darkMode),
     );
   }
 
@@ -109,6 +142,10 @@ class _EditorWidgetState extends State<EditorWidget> {
     codeMirror!.doc.setValue(value);
   }
 
+  void _updateEditableStatus() {
+    codeMirror?.setReadOnly(!widget.appModel.appReady.value);
+  }
+
   void _updateIssues(List<AnalysisIssue> issues) {
     final doc = codeMirror!.doc;
 
@@ -129,7 +166,7 @@ class _EditorWidgetState extends State<EditorWidget> {
     }
   }
 
-  void _updateEditableStatus() {
-    codeMirror?.setReadOnly(!widget.appModel.appReady.value);
+  void _updateCodemirrorMode(bool darkMode) {
+    codeMirror?.setTheme(darkMode ? 'monokai' : 'default');
   }
 }

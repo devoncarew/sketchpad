@@ -36,17 +36,14 @@ const appName = 'SketchPad';
 void main() {
   setPathUrlStrategy();
 
-  runApp(const DartPadApp());
+  runApp(DartPadApp());
 }
 
-class DartPadApp extends StatefulWidget {
-  const DartPadApp({super.key});
+class DartPadApp extends StatelessWidget {
+  final Key pageKey = GlobalKey();
 
-  @override
-  State<DartPadApp> createState() => _DartPadAppState();
-}
+  DartPadApp({super.key});
 
-class _DartPadAppState extends State<DartPadApp> {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
@@ -66,7 +63,11 @@ class _DartPadAppState extends State<DartPadApp> {
                 path: '/',
                 builder: (BuildContext context, GoRouterState state) {
                   final id = state.queryParameters['id'];
-                  return DartPadMainPage(title: appName, gistId: id);
+                  return DartPadMainPage(
+                    title: appName,
+                    gistId: id,
+                    key: pageKey,
+                  );
                 },
               ),
             ],
@@ -349,7 +350,8 @@ class _DartPadMainPageState extends State<DartPadMainPage> {
     try {
       final response = await appServices.compile(CompileRequest(source: value));
 
-      appModel.executionStatus.showToast('Running…');
+      appModel.executionStatus
+          .showToast('Running…', duration: const Duration(seconds: 1));
       appServices.executeJavaScript(response.result);
     } catch (error) {
       appModel.executionStatus.showToast('Compilation failed');

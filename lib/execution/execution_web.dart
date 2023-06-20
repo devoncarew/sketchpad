@@ -7,48 +7,64 @@ import 'package:flutter/material.dart';
 import '../model.dart';
 import 'frame.dart';
 
+final Key _elementViewKey = UniqueKey();
+
+final Expando _expando = Expando('iframe');
+
+const String _viewType = 'dartpad-execution';
+
+bool _viewFactoryInited = false;
+
+void _initViewFactory() {
+  if (_viewFactoryInited) return;
+
+  _viewFactoryInited = true;
+
+  ui_web.platformViewRegistry.registerViewFactory(_viewType, _iFrameFactory);
+}
+
+html.Element _iFrameFactory(int viewId) {
+  // 'allow-popups' allows plugins like url_launcher to open popups.
+  var frame = html.IFrameElement()
+    ..sandbox!.add('allow-scripts')
+    ..sandbox!.add('allow-popups')
+    ..src = 'impl/frame.html'
+    ..style.border = 'none'
+    ..style.width = '100%'
+    ..style.height = '100%';
+
+  final executionService = ExecutionServiceImpl(frame);
+
+  _expando[frame] = executionService;
+
+  return frame;
+}
+
 class ExecutionWidget extends StatefulWidget {
   final AppServices appServices;
 
-  const ExecutionWidget({
+  ExecutionWidget({
     required this.appServices,
     super.key,
-  });
+  }) {
+    _initViewFactory();
+  }
 
   @override
   State<ExecutionWidget> createState() => _ExecutionWidgetState();
 }
 
 class _ExecutionWidgetState extends State<ExecutionWidget> {
-  ExecutionService? executionService;
-
-  @override
-  void initState() {
-    super.initState();
-
-    ui_web.platformViewRegistry.registerViewFactory('dartpad-execution',
-        (int viewId) {
-      // 'allow-popups' allows plugins like url_launcher to open popups.
-      var frame = html.IFrameElement()
-        ..sandbox!.add('allow-scripts')
-        ..sandbox!.add('allow-popups')
-        ..src = 'impl/frame.html'
-        ..style.border = 'none'
-        ..style.width = '100%'
-        ..style.height = '100%';
-
-      executionService = ExecutionServiceImpl(frame);
-
-      return frame;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return HtmlElementView(
+      key: _elementViewKey,
       viewType: 'dartpad-execution',
       onPlatformViewCreated: (int id) {
-        widget.appServices.registerExecutionService(executionService!);
+        final frame =
+            ui_web.platformViewRegistry.getViewById(id) as html.Element;
+        final executionService = _expando[frame] as ExecutionService;
+        widget.appServices.registerExecutionService(executionService);
       },
     );
   }
