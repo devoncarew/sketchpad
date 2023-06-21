@@ -15,6 +15,7 @@ dependencies:
   http: any
   protobuf: any
   provider: ^6.0.0
+  shared_preferences: ^2.1.0
   split_view: ^3.2.0
   url_launcher: any
   url_strategy: any
@@ -28,5 +29,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/dart_logo_128.png
+    - assets/flutter_logo_192.png
     - assets/gear-96-dark.png
     - assets/gear-96-light.png

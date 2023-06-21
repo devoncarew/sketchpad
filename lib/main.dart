@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sketchpad/services/dartservices.dart';
 import 'package:split_view/split_view.dart';
 import 'package:url_strategy/url_strategy.dart';
@@ -29,25 +30,49 @@ import 'widgets.dart';
 
 // todo: explore using the monaco editor
 
-final ValueNotifier<bool> darkTheme = ValueNotifier(true);
-
 const appName = 'SketchPad';
 
-void main() {
+final ValueNotifier<bool> darkMode = ValueNotifier(true);
+
+void main() async {
   setPathUrlStrategy();
 
-  runApp(DartPadApp());
+  runApp(DartPadApp(prefs: await SharedPreferences.getInstance()));
 }
 
-class DartPadApp extends StatelessWidget {
-  final Key pageKey = GlobalKey();
+class DartPadApp extends StatefulWidget {
+  final SharedPreferences prefs;
 
-  DartPadApp({super.key});
+  const DartPadApp({
+    required this.prefs,
+    super.key,
+  });
+
+  @override
+  State<DartPadApp> createState() => _DartPadAppState();
+}
+
+class _DartPadAppState extends State<DartPadApp> {
+  // todo:
+  // final Key pageKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Init the dark mode value notifier.
+    darkMode.value = widget.prefs.getBool('darkMode') ?? true;
+    darkMode.addListener(_storeThemeValue);
+  }
+
+  Future<void> _storeThemeValue() async {
+    await widget.prefs.setBool('darkMode', darkMode.value);
+  }
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder(
-      valueListenable: darkTheme,
+      valueListenable: darkMode,
       builder: (BuildContext context, bool value, _) {
         return MaterialApp.router(
           title: appName,
@@ -66,7 +91,7 @@ class DartPadApp extends StatelessWidget {
                   return DartPadMainPage(
                     title: appName,
                     gistId: id,
-                    key: pageKey,
+                    // key: pageKey,
                   );
                 },
               ),
@@ -76,6 +101,13 @@ class DartPadApp extends StatelessWidget {
         );
       },
     );
+  }
+
+  @override
+  void dispose() {
+    darkMode.removeListener(_storeThemeValue);
+
+    super.dispose();
   }
 }
 
@@ -168,13 +200,13 @@ class _DartPadMainPageState extends State<DartPadMainPage> {
           ),
           const VerticalDivider(),
           ValueListenableBuilder(
-            valueListenable: darkTheme,
+            valueListenable: darkMode,
             builder: (context, value, _) {
               // todo: animate the icon changes
               return IconButton(
                 iconSize: defaultIconSize,
                 splashRadius: defaultSplashRadius,
-                onPressed: () => darkTheme.value = !value,
+                onPressed: () => darkMode.value = !value,
                 icon: value
                     ? const Icon(Icons.light_mode_outlined)
                     : const Icon(Icons.dark_mode_outlined),
@@ -182,14 +214,80 @@ class _DartPadMainPageState extends State<DartPadMainPage> {
             },
           ),
           const SizedBox(width: denseSpacing),
-          IconButton(
-            iconSize: defaultIconSize,
-            splashRadius: defaultSplashRadius,
-            onPressed: () => unimplemented(context, 'overflow menu'),
-            icon: const Icon(Icons.more_vert),
-          ),
-          const SizedBox(width: denseSpacing),
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Image.asset(
+                'assets/dart_logo_128.png',
+                width: defaultIconSize,
+              ),
+              title: const Text('Hello World'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(Uri(path: '/', queryParameters: {
+                  'id': 'c0f7c578204d61e08ec0fbc4d63456cd',
+                }).toString());
+              },
+            ),
+            ListTile(
+              leading: Image.asset(
+                'assets/dart_logo_128.png',
+                width: defaultIconSize,
+              ),
+              title: const Text('Fibonacci'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(Uri(path: '/', queryParameters: {
+                  'id': 'd3bd83918d21b6d5f778bdc69c3d36d6',
+                }).toString());
+              },
+            ),
+            ListTile(
+              leading: Image.asset(
+                'assets/flutter_logo_192.png',
+                width: defaultIconSize,
+              ),
+              title: const Text('Counter'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(Uri(path: '/', queryParameters: {
+                  'id': 'e75b493dae1287757c5e1d77a0dc73f1',
+                }).toString());
+              },
+            ),
+            ListTile(
+              leading: Image.asset(
+                'assets/flutter_logo_192.png',
+                width: defaultIconSize,
+              ),
+              title: const Text('Sunflower'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(Uri(path: '/', queryParameters: {
+                  'id': '5c0e154dd50af4a9ac856908061291bc',
+                }).toString());
+              },
+            ),
+            const Divider(),
+            const AboutListTile(icon: Icon(Icons.info)),
+          ],
+        ),
       ),
       body: Column(
         children: [
