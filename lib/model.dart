@@ -6,6 +6,14 @@ import 'package:sketchpad/gists.dart';
 import 'services/dartservices.dart';
 import 'utils.dart';
 
+// TODO: make sure that calls have built-in timeouts (10s, 60s, ...)
+
+abstract class ExecutionService {
+  Future<void> execute(String javaScript);
+  Stream<String> get onStdout;
+  Future<void> tearDown();
+}
+
 class AppModel {
   final ValueNotifier<bool> appReady = ValueNotifier(false);
 
@@ -187,12 +195,6 @@ int _compareIssues(AnalysisIssue a, AnalysisIssue b) {
   if (diff != 0) return -diff;
 
   return a.charStart - b.charStart;
-}
-
-abstract class ExecutionService {
-  Future<void> execute(String javaScript);
-  Stream<String> get onStdout;
-  Future<void> tearDown();
 }
 
 extension AnalysisIssueExtension on AnalysisIssue {
