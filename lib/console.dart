@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sketchpad/model.dart';
 
+import 'model.dart';
 import 'theme.dart';
 
 class ConsoleWidget extends StatefulWidget {

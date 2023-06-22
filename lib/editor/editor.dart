@@ -2,16 +2,16 @@
 
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
 import 'dart:math' as math;
+import 'dart:ui_web' as ui_web;
 
-import 'package:flutter/material.dart';
-import 'package:sketchpad/model.dart';
 import 'package:codemirror/codemirror.dart';
+import 'package:flutter/material.dart';
 
+import '../model.dart';
 import '../services/dartservices.dart';
 
-// todo: support code completion
+// TODO: support code completion
 
 final Key _elementViewKey = UniqueKey();
 

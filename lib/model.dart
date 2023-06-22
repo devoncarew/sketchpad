@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:sketchpad/gists.dart';
 
+import 'gists.dart';
 import 'services/dartservices.dart';
 import 'utils.dart';
 

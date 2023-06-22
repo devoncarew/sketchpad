@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sketchpad/services/dartservices.dart';
 import 'package:split_view/split_view.dart';
 import 'package:url_strategy/url_strategy.dart';
 
@@ -12,6 +11,7 @@ import 'editor/editor.dart';
 import 'execution/execution.dart';
 import 'model.dart';
 import 'problems.dart';
+import 'services/dartservices.dart';
 import 'theme.dart';
 import 'utils.dart';
 import 'widgets.dart';

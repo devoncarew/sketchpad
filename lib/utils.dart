@@ -5,7 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttering_phrases/fluttering_phrases.dart'
     as fluttering_phrases;
-import 'package:sketchpad/theme.dart';
+
+import 'theme.dart';
 
 const defaultSnippetSource = r'''
 void main() {
