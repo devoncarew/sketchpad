@@ -1,4 +1,4 @@
-## DartSketch
+## SketchPad
 
 An experimental redux of the DartPad UI.
 
@@ -19,11 +19,8 @@ To run this locally, run:
 flutter run -d chrome
 ```
 
-For development it's possible to run some aspects of the UI as a Flutter Desktop
-app. Most text editing will not work and DartPad snippets will not execute.
-However, this can still be useful for experimenting with smaller UI
-modifications.
+And to deploy, run:
 
 ```
-flutter run -d macos
+flutter build web && firebase deploy
 ```
